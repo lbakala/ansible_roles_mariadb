@@ -1,0 +1,72 @@
+---
+- name: Ensure replication user exists on master.
+  mysql_user:
+    name: "{{ item.name }}"
+    host: "{{ item.host | default('%') }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv | default('*.*:REPLICATION SLAVE,REPLICATION CLIENT') }}"
+    state: present
+  loop: '{{ mysql_replication_user }}'
+  no_log: true
+  when:
+    - mysql_replication_role == 'master'
+
+- name: Check slave replication status.
+  mysql_replication:
+    mode: getreplica
+    login_user: "{{ mysql_root_username }}"
+    login_password: "{{ mysql_root_password }}"
+  ignore_errors: true
+  register: slave
+  no_log: true
+  when:
+    - mysql_replication_role == 'slave'
+    - (mysql_replication_master | length) > 0
+      # tags: ['skip_ansible_galaxy']
+      #
+- name: Print return information slave
+  ansible.builtin.debug:
+    var: slave
+    verbosity: 2
+
+- name: Check master replication status.
+  mysql_replication:
+    mode: getprimary
+  delegate_to: "{{ mysql_replication_master_inventory_host }}"
+  register: master
+  no_log: true
+  when: 
+    - (slave.Is_Replica is defined and not slave.Is_Replica) 
+    - mysql_replication_role == 'slave'
+    - (mysql_replication_master | length) > 0
+      #tags: ['skip_ansible_galaxy']
+
+- name: Configure replication on the slave.
+  mysql_replication:
+    mode: changeprimary
+    master_host: "{{ mysql_replication_master }}"
+    master_user: "{{ item.name }}"
+    master_password: "{{ item.password }}"
+    master_log_file: "{{ master.File }}"
+    master_log_pos: "{{ master.Position }}"
+  loop: '{{ mysql_replication_user }}'
+  ignore_errors: true
+  no_log: true
+  when:
+    - (slave.Is_Replica is defined and not slave.Is_Replica) 
+    - mysql_replication_role == 'slave'
+      #- mysql_replication_user.name is defined
+    - (mysql_replication_master | length) > 0
+
+- name: Set replica node to read_only mode
+  ansible.builtin.command: echo "set global read_only=1;" | mysql
+  when: 
+    - mysql_replication_role == 'slave'
+- name: Start replication.
+  mysql_replication:
+    mode: startreplica
+  when:
+    - (slave.Is_Replica is defined and slave.Is_Replica) 
+    - mysql_replication_role == 'slave'
+    - (mysql_replication_master | length) > 0
+      #tags: ['skip_ansible_galaxy']

@@ -1,0 +1,19 @@
+- name: Stop mysql service
+  ansible.builtin.systemd:
+    name: mysql
+    state: stopped
+- name: remove mariadb-server
+  ansible.builtin.apt:
+    name: mariadb-*
+    state: absent
+- name: purge mariadb packages
+  ansible.builtin.shell: apt purge mariadb-* -y
+- name: autoremove
+  ansible.builtin.apt:
+    autoremove: yes
+- name: remove /home/mysql
+  ansible.builtin.file:
+    path: /home/mysql
+    state: absent
+
+

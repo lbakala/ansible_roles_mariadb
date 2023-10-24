@@ -1,0 +1,14 @@
+[Service]
+
+ProtectHome=false
+
+ExecStartPre=
+ExecStartPre=/usr/bin/install -m 700 -o mysql -g mysql -d /var/run/mysqld
+
+ExecStart=
+ExecStart=/usr/sbin/mysqld $MYSQLD_OPTS --basedir=/home/mysql $_WSREP_NEW_CLUSTER $_WSREP_START_POSITION
+
+LimitNOFILE=infinity
+
+Environment="UMASK=0600"
+Environment="UMASK_DIR=0700"

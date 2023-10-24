@@ -1,0 +1,39 @@
+---
+- import_tasks: _install.yml
+  tags:
+    - mariadb
+    - install
+    - mariadb-install
+
+- import_tasks: _configure.yml
+  tags:
+    - mariadb
+    - config
+    - mariadb-config
+
+- import_tasks: _secure_installation.yml
+  tags:
+    - mariadb
+    - secure
+    - mariadb-secure
+
+- import_tasks: _databases_and_users.yml
+  tags:
+    - mariadb
+    - database
+    - users
+    - mariadb-database
+
+- import_tasks: _replication.yml
+  tags:
+    - mariadb
+    - replication
+    - mariadb-replication
+
+- import_tasks: _remove_mariadb.yml
+  ignore_errors: yes
+  tags:
+    - never
+    - remove-mariadb-server
+
+

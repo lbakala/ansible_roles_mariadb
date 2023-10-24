@@ -1,0 +1,40 @@
+---
+- name: Install requirements
+  apt:
+    name: '{{ mysql_python_packages }}'
+    state: present
+  register: task_result
+  retries: 3
+  delay: 2
+  until: task_result is succeeded
+
+- name: Downloads script
+  get_url:
+    url: "https://r.mariadb.com/downloads/mariadb_repo_setup"
+    dest: "/tmp"
+    mode: '0755'
+  when: ansible_distribution_major_version < '11'
+
+- name:
+  shell: /tmp/mariadb_repo_setup  --mariadb-server-version="mariadb-{{mysql_version}}"
+  when: ansible_distribution_major_version < '11'
+
+- name: Install {{ mysql_daemon }} {{ mysql_version }}
+  apt:
+    name: '{{ mysql_packages }}'
+    state: present
+    update_cache: true
+  register: task_result
+  retries: 3
+  delay: 2
+  until: task_result is succeeded
+
+- name: /etc/fstab
+  mount:
+    path: "{{item.path}}"
+    src: "{{item.dev}}"
+    fstype: "{{item.fstype}}"
+    opts: "{{item.mnt_opts|default('default')}}"
+    state: "{{item.state|default('mounted')}}"
+  loop: '{{base_fs|default([])}}'
+  when: host_type == "ovh_phy"
